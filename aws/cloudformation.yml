@@ -1,0 +1,79 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  LambdaPackageS3Bucket:
+    Type: String
+  LambdaPackageS3Key:
+    Type: String
+  LambdaEventSchedule:
+    Type: String
+    Default: rate(1 day)
+  GitHubToken:
+    Type: String
+  GitHubUpstream:
+    Type: String
+  GitHubFork:
+    Type: String
+  GitBranch:
+    Type: String
+    Default: master
+
+Resources:
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: github-fork-sync-lambda-execution-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+
+  Lambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: github-fork-sync-lambda
+      Description: Who has the time to manually sync their forks ?
+      Runtime: python2.7
+      Handler: lambda.handler
+      Code:
+        S3Bucket: !Ref LambdaPackageS3Bucket
+        S3Key: !Ref LambdaPackageS3Key
+      Environment:
+        Variables:
+          GITHUB_TOKEN: !Ref GitHubToken
+      Role:
+        Fn::GetAtt:
+          - LambdaExecutionRole
+          - Arn
+
+  LambdaEvent:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: github-fork-sync-lambda-event
+      ScheduleExpression: !Ref LambdaEventSchedule
+      Targets:
+      -
+        Id: github-fork-sync-event
+        Arn:
+          Fn::GetAtt:
+            - Lambda
+            - Arn
+        Input: !Sub
+          - '{ "upstream_repo": "${upstream}", "fork_repo": "${fork}", "branch": "${branch}" }'
+          - { upstream: !Ref GitHubUpstream, fork: !Ref GitHubFork, branch: !Ref GitBranch }
+
+  PermissionForEventsToInvokeLambdas:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref Lambda
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn:
+        Fn::GetAtt:
+          - LambdaEvent
+          - Arn
