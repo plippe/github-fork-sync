@@ -21,7 +21,7 @@ def update_last_commit(repo, branch, commit):
     data = json.dumps({ 'ref': 'refs/heads/{}'.format(branch), 'sha': commit })
     body = github_request(repo, branch, data)
 
-def main(upstream_repo, fork_repo, branch):
+def github_fork_sync(upstream_repo, fork_repo, branch):
     upstream_commit = latest_commit(upstream_repo, branch)
     fork_commit = latest_commit(fork_repo, branch)
 
@@ -41,4 +41,4 @@ def args():
 
 if __name__ == '__main__':
     args = args()
-    main(args.upstream_repo, args.fork_repo, args.branch)
+    github_fork_sync(args.upstream_repo, args.fork_repo, args.branch)
