@@ -5,18 +5,8 @@ Parameters:
     Type: String
   LambdaPackageS3Key:
     Type: String
-  LambdaEventSchedule:
-    Type: String
-    Default: rate(1 day)
   GitHubToken:
     Type: String
-  GitHubUpstream:
-    Type: String
-  GitHubFork:
-    Type: String
-  GitBranch:
-    Type: String
-    Default: master
 
 Resources:
   LambdaExecutionRole:
@@ -55,17 +45,7 @@ Resources:
     Type: AWS::Events::Rule
     Properties:
       Name: github-fork-sync-lambda-event
-      ScheduleExpression: !Ref LambdaEventSchedule
-      Targets:
-      -
-        Id: github-fork-sync-event
-        Arn:
-          Fn::GetAtt:
-            - Lambda
-            - Arn
-        Input: !Sub
-          - '{ "upstream_repo": "${upstream}", "fork_repo": "${fork}", "branch": "${branch}" }'
-          - { upstream: !Ref GitHubUpstream, fork: !Ref GitHubFork, branch: !Ref GitBranch }
+      ScheduleExpression: rate(1 day)
 
   PermissionForEventsToInvokeLambdas:
     Type: AWS::Lambda::Permission
